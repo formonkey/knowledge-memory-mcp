@@ -214,6 +214,19 @@ function serializeEntry(entry) {
   ].filter(Boolean).join("\n");
 }
 
+function serializeIndexEntry(entry) {
+  const tags = normalizeArray(entry.tags).join(", ") || "-";
+  const paths = normalizeArray(entry.relatedPaths).join(", ") || "-";
+  return [
+    `- ${entry.id} | ${entry.title}`,
+    `  Store: ${entry._store || entry.scope || "-"}`,
+    `  Kind: ${entry.kind || "-"}`,
+    `  Tags: ${tags}`,
+    `  Paths: ${paths}`,
+    entry.summary ? `  Summary: ${entry.summary}` : ""
+  ].filter(Boolean).join("\n");
+}
+
 function searchableText(entry) {
   return [
     entry.id,
@@ -394,6 +407,26 @@ function listTools() {
       }
     },
     {
+      name: "list_change_index",
+      title: "Listar Indice",
+      description: "Lista un indice compacto de cambios con id, titulo, store, tipo, tags y rutas para decidir que consultar despues.",
+      annotations: {
+        readOnlyHint: true
+      },
+      inputSchema: {
+        type: "object",
+        properties: {
+          ...projectSelectors,
+          ...includeSelectors,
+          query: {
+            type: "string",
+            description: "Filtro textual opcional sobre titulo, resumen, tags, rutas y contenido."
+          },
+          limit: { type: "integer", minimum: 1, maximum: 200 }
+        }
+      }
+    },
+    {
       name: "get_change",
       title: "Obtener Cambio",
       description: "Recupera un cambio exacto por id",
@@ -516,6 +549,31 @@ function handleToolCall(name, args) {
     }
 
     return success(sorted.map(serializeEntry).join("\n\n---\n\n"));
+  }
+
+  if (name === "list_change_index") {
+    const limit = Math.max(1, Math.min(Number(args?.limit || 50), 200));
+    const query = String(args.query || "").trim();
+    const items = query
+      ? searchEntries(query, limit, args)
+          .map(({ entry, score }) => ({ entry, score }))
+      : readScopedEntries(args)
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+          .slice(0, limit)
+          .map((entry) => ({ entry, score: null }));
+
+    if (items.length === 0) {
+      return success(query ? `No se encontraron cambios para: ${query}` : "No hay cambios guardados.");
+    }
+
+    return success(
+      items
+        .map(({ entry, score }) => {
+          const suffix = score === null ? "" : `\n  Score: ${score}`;
+          return `${serializeIndexEntry(entry)}${suffix}`;
+        })
+        .join("\n")
+    );
   }
 
   if (name === "get_change") {

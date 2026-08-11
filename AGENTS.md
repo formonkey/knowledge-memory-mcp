@@ -23,7 +23,8 @@ Agents must not edit those files manually. Interaction must go through the `know
 
 Before implementing, reviewing, or fixing code:
 
-- Call `get_relevant_changes` with a short, concrete task summary.
+- Call `list_change_index` first to inspect the compact index without spending many tokens.
+- Then call `get_change`, `search_changes`, or `get_relevant_changes` only for entries that look relevant to the task.
 - If you need to find a preference, recurring mistake, path, or specific concept, use `search_changes`.
 - If you already know the exact change id, use `get_change`.
 - When working with several projects in one conversation, pass `projectPath` to select the right project memory.
@@ -80,7 +81,7 @@ Example usage:
 
 Default flow:
 
-1. The implementation agent calls `get_relevant_changes` before touching code.
+1. The implementation agent calls `list_change_index` before touching code, then retrieves only relevant entries.
 2. The implementation agent does the work while respecting those criteria.
 3. The review agent reviews the code and checks the result against retrieved criteria and already learned rules.
 4. If the review finds violations or a new reusable correction, it reports concrete adjustments to the implementation agent.
@@ -91,7 +92,7 @@ Default flow:
 The review agent is the consistency checkpoint:
 
 - Check whether the code repeats previously corrected mistakes.
-- Use `get_relevant_changes` and `search_changes` when the context requires it.
+- Use `list_change_index`, `get_relevant_changes`, and `search_changes` when the context requires it.
 - Tell the implementation agent exactly what to adjust when discrepancies are found.
 - Suggest that a correction may be worth saving, but never call `add_local` or `add_global` without an explicit user request or confirmation.
 

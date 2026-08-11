@@ -117,6 +117,12 @@ test("stores local memory in the project and global memory in the global file", 
           task: "project global criteria",
         },
       },
+      {
+        name: "list_change_index",
+        arguments: {
+          query: "memory",
+        },
+      },
     ],
   });
 
@@ -130,6 +136,12 @@ test("stores local memory in the project and global memory in the global file", 
   const relevantText = messages[3].result.content[0].text;
   assert.match(relevantText, /store=project/);
   assert.match(relevantText, /store=global/);
+
+  const indexText = messages[4].result.content[0].text;
+  assert.match(indexText, /Project memory/);
+  assert.match(indexText, /Global memory/);
+  assert.match(indexText, /Kind:/);
+  assert.doesNotMatch(indexText, /Project-specific criteria should not pollute global memory/);
 });
 
 test("supports projectPath argument for multiple projects in one server", async () => {

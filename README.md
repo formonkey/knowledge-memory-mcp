@@ -33,6 +33,7 @@ Backward compatibility:
 
 - `add_local`: stores a new correction or criterion in project memory.
 - `add_global`: stores a cross-project criterion in global memory.
+- `list_change_index`: lists a compact index of entries with id, title, store, kind, tags, and paths.
 - `list_changes`: lists project + global entries by default.
 - `search_changes`: searches entries by free text, tags, or paths.
 - `get_relevant_changes`: returns the most relevant project + global entries for a task.
@@ -101,7 +102,7 @@ After changing the config, restart Codex so the MCP server is reloaded.
 Add a rule like this to global or repository instructions when you want agents to use this memory:
 
 ```md
-Before implementing or reviewing changes, call `get_relevant_changes` on the `knowledge_memory` MCP server with a short summary of the task, then apply the retrieved criteria when they are still relevant.
+Before implementing or reviewing changes, call `list_change_index` on the `knowledge_memory` MCP server to inspect the compact index. Then call `get_change`, `search_changes`, or `get_relevant_changes` only for entries that look relevant.
 
 When a conversation touches multiple projects, pass `projectPath` in tool calls to select the correct local memory.
 
