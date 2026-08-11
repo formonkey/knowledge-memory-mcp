@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import crypto from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
-
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 function parseCliArgs(argv) {
   const args = {};
@@ -21,16 +20,33 @@ function parseCliArgs(argv) {
     if (key === "--memory-path" && value) {
       args.memoryPath = value;
     }
+
+    if (key === "--store-root" && value) {
+      args.storeRoot = value;
+    }
+
+    if (key === "--project-path" && value) {
+      args.projectPath = value;
+    }
   }
 
   return args;
 }
 
 const CLI_ARGS = parseCliArgs(process.argv.slice(2));
-const ROOT = path.resolve(CLI_ARGS.memoryRoot || process.env.CHANGES_MEMORY_ROOT || process.cwd());
-const CHANGES_PATH = path.resolve(
-  CLI_ARGS.memoryPath || process.env.CHANGES_MEMORY_PATH || path.join(ROOT, ".codex", "changes.md")
+const STORE_ROOT = path.resolve(
+  CLI_ARGS.storeRoot ||
+    process.env.CHANGES_MEMORY_STORE_ROOT ||
+    path.join(os.homedir(), ".codex", "changes-memory")
 );
+const DEFAULT_PROJECT_PATH = path.resolve(
+  CLI_ARGS.projectPath ||
+    CLI_ARGS.memoryRoot ||
+    process.env.CHANGES_MEMORY_PROJECT_PATH ||
+    process.env.CHANGES_MEMORY_ROOT ||
+    process.cwd()
+);
+const DEFAULT_PROJECT_MEMORY_PATH = CLI_ARGS.memoryPath || process.env.CHANGES_MEMORY_PATH || "";
 const SERVER_INFO = {
   name: "changes-memory-mcp",
   version: "0.1.0"
@@ -41,23 +57,54 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
   "2024-11-05"
 ];
 const SERVER_INSTRUCTIONS =
-  "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo; usa add_change solo cuando el usuario pida guardar un aprendizaje reutilizable.";
+  "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo. Usa add_change para memoria del proyecto y add_change_global solo cuando el usuario pida guardar un aprendizaje reutilizable transversal.";
 
-function ensureStore() {
-  fs.mkdirSync(path.dirname(CHANGES_PATH), { recursive: true });
+function stableProjectKey(projectPath) {
+  const absolutePath = path.resolve(projectPath || DEFAULT_PROJECT_PATH);
+  const base = slugify(path.basename(absolutePath)) || "project";
+  const hash = crypto.createHash("sha1").update(absolutePath).digest("hex").slice(0, 8);
+  return `${base}-${hash}`;
+}
 
-  if (!fs.existsSync(CHANGES_PATH)) {
+function resolveProjectKey(args = {}) {
+  if (args.projectKey) {
+    return slugify(args.projectKey) || "project";
+  }
+
+  if (args.project) {
+    return slugify(args.project) || "project";
+  }
+
+  return stableProjectKey(args.projectPath || DEFAULT_PROJECT_PATH);
+}
+
+function globalChangesPath() {
+  return path.join(STORE_ROOT, "global", "changes.md");
+}
+
+function projectChangesPath(args = {}) {
+  if (DEFAULT_PROJECT_MEMORY_PATH && !args.projectPath && !args.projectKey && !args.project) {
+    return path.resolve(DEFAULT_PROJECT_MEMORY_PATH);
+  }
+
+  return path.join(STORE_ROOT, "projects", resolveProjectKey(args), "changes.md");
+}
+
+function ensureStore(changesPath) {
+  fs.mkdirSync(path.dirname(changesPath), { recursive: true });
+
+  if (!fs.existsSync(changesPath)) {
     fs.writeFileSync(
-      CHANGES_PATH,
+      changesPath,
       "# Changes Memory\n\n",
       "utf8"
     );
   }
 }
 
-function readStore() {
-  ensureStore();
-  return fs.readFileSync(CHANGES_PATH, "utf8");
+function readStore(changesPath) {
+  ensureStore(changesPath);
+  return fs.readFileSync(changesPath, "utf8");
 }
 
 function normalizeArray(value) {
@@ -93,7 +140,7 @@ function createId(title, existingCount) {
   return `CHG-${date}-${suffix}-${slugify(title) || "item"}`;
 }
 
-function parseEntries(markdown) {
+function parseEntries(markdown, source = {}) {
   const matches = [...markdown.matchAll(/^##\s+(CHG-[^\n]+)\n```json\n([\s\S]*?)\n```\n?/gm)];
   const entries = [];
 
@@ -101,6 +148,9 @@ function parseEntries(markdown) {
     try {
       const entry = JSON.parse(match[2]);
       entry._heading = match[1];
+      entry._store = source.store || "";
+      entry._projectKey = source.projectKey || "";
+      entry._path = source.path || "";
       entries.push(entry);
     } catch {
       // Ignora bloques corruptos para no romper el servidor entero.
@@ -114,21 +164,57 @@ function renderEntry(entry) {
   return `## ${entry.id} | ${entry.title}\n\`\`\`json\n${JSON.stringify(entry, null, 2)}\n\`\`\`\n`;
 }
 
-function appendEntry(entry) {
-  ensureStore();
-  const current = readStore();
+function appendEntry(entry, changesPath) {
+  ensureStore(changesPath);
+  const current = readStore(changesPath);
   const needsSeparator = current.trimEnd().length > 0 && !current.endsWith("\n\n");
   const prefix = needsSeparator ? "\n" : "";
-  appendText(`${prefix}${renderEntry(entry)}\n`);
+  appendText(changesPath, `${prefix}${renderEntry(entry)}\n`);
 }
 
-function appendText(text) {
-  fs.appendFileSync(CHANGES_PATH, text, "utf8");
+function appendText(changesPath, text) {
+  fs.appendFileSync(changesPath, text, "utf8");
+}
+
+function readGlobalEntries() {
+  const changesPath = globalChangesPath();
+  return parseEntries(readStore(changesPath), {
+    store: "global",
+    path: changesPath
+  });
+}
+
+function readProjectEntries(args = {}) {
+  const changesPath = projectChangesPath(args);
+  const projectKey = resolveProjectKey(args);
+  return parseEntries(readStore(changesPath), {
+    store: "project",
+    projectKey,
+    path: changesPath
+  });
+}
+
+function readScopedEntries(args = {}) {
+  const includeGlobal = args.includeGlobal !== false;
+  const includeProject = args.includeProject !== false;
+  const entries = [];
+
+  if (includeProject) {
+    entries.push(...readProjectEntries(args));
+  }
+
+  if (includeGlobal) {
+    entries.push(...readGlobalEntries());
+  }
+
+  return entries;
 }
 
 function serializeEntry(entry) {
   return [
     `ID: ${entry.id}`,
+    `Store: ${entry._store || entry.scope || "-"}`,
+    entry._projectKey ? `Proyecto: ${entry._projectKey}` : "",
     `Titulo: ${entry.title}`,
     `Resumen: ${entry.summary}`,
     `Cambio pedido: ${entry.requestedChange}`,
@@ -141,7 +227,7 @@ function serializeEntry(entry) {
     `Ahora: ${entry.after || "-"}`,
     `Ejemplos: ${entry.examples.join(" | ") || "-"}`,
     `Fecha: ${entry.createdAt}`
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 function searchableText(entry) {
@@ -191,8 +277,8 @@ function scoreEntry(entry, terms) {
   return score;
 }
 
-function searchEntries(query, limit) {
-  const entries = parseEntries(readStore());
+function searchEntries(query, limit, args = {}) {
+  const entries = readScopedEntries(args);
   const terms = String(query || "")
     .toLowerCase()
     .split(/\s+/)
@@ -210,11 +296,76 @@ function searchEntries(query, limit) {
 }
 
 function listTools() {
+  const projectSelectors = {
+    projectPath: {
+      type: "string",
+      description: "Ruta absoluta del proyecto cuya memoria se quiere usar. Si se omite, se usa el proyecto por defecto del servidor."
+    },
+    projectKey: {
+      type: "string",
+      description: "Clave estable del proyecto. Alternativa a projectPath para stores compartidos."
+    },
+    project: {
+      type: "string",
+      description: "Alias legible del proyecto. Alternativa a projectPath/projectKey."
+    }
+  };
+  const includeSelectors = {
+    includeGlobal: {
+      type: "boolean",
+      description: "Incluye la memoria global. Por defecto true."
+    },
+    includeProject: {
+      type: "boolean",
+      description: "Incluye la memoria del proyecto. Por defecto true."
+    }
+  };
+
   return [
     {
       name: "add_change",
       title: "Guardar Cambio",
-      description: "Guarda una nueva correccion o criterio aprendido en .codex/changes.md",
+      description: "Guarda una nueva correccion o criterio aprendido en la memoria del proyecto.",
+      annotations: {
+        readOnlyHint: false
+      },
+      inputSchema: {
+        type: "object",
+        properties: {
+          ...projectSelectors,
+          title: { type: "string" },
+          summary: { type: "string" },
+          requestedChange: { type: "string" },
+          rationale: { type: "string" },
+          kind: { type: "string", enum: ["preference", "repo-convention", "domain-fact", "anti-pattern"] },
+          tags: {
+            oneOf: [
+              { type: "array", items: { type: "string" } },
+              { type: "string" }
+            ]
+          },
+          relatedPaths: {
+            oneOf: [
+              { type: "array", items: { type: "string" } },
+              { type: "string" }
+            ]
+          },
+          before: { type: "string" },
+          after: { type: "string" },
+          examples: {
+            oneOf: [
+              { type: "array", items: { type: "string" } },
+              { type: "string" }
+            ]
+          }
+        },
+        required: ["title", "summary", "requestedChange", "rationale"]
+      }
+    },
+    {
+      name: "add_change_global",
+      title: "Guardar Cambio Global",
+      description: "Guarda una correccion o criterio transversal en la memoria global.",
       annotations: {
         readOnlyHint: false
       },
@@ -226,7 +377,6 @@ function listTools() {
           requestedChange: { type: "string" },
           rationale: { type: "string" },
           kind: { type: "string", enum: ["preference", "repo-convention", "domain-fact", "anti-pattern"] },
-          scope: { type: "string", enum: ["global", "repo"] },
           tags: {
             oneOf: [
               { type: "array", items: { type: "string" } },
@@ -254,13 +404,15 @@ function listTools() {
     {
       name: "list_changes",
       title: "Listar Cambios",
-      description: "Lista los cambios guardados",
+      description: "Lista los cambios guardados en la memoria del proyecto y la global.",
       annotations: {
         readOnlyHint: true
       },
       inputSchema: {
         type: "object",
         properties: {
+          ...projectSelectors,
+          ...includeSelectors,
           limit: { type: "integer", minimum: 1, maximum: 100 }
         }
       }
@@ -275,6 +427,8 @@ function listTools() {
       inputSchema: {
         type: "object",
         properties: {
+          ...projectSelectors,
+          ...includeSelectors,
           id: { type: "string" }
         },
         required: ["id"]
@@ -290,6 +444,8 @@ function listTools() {
       inputSchema: {
         type: "object",
         properties: {
+          ...projectSelectors,
+          ...includeSelectors,
           query: { type: "string" },
           limit: { type: "integer", minimum: 1, maximum: 20 }
         },
@@ -306,6 +462,8 @@ function listTools() {
       inputSchema: {
         type: "object",
         properties: {
+          ...projectSelectors,
+          ...includeSelectors,
           task: { type: "string" },
           limit: { type: "integer", minimum: 1, maximum: 20 }
         },
@@ -326,31 +484,52 @@ function success(text) {
   };
 }
 
+function buildEntry(args, existingCount, scope) {
+  return {
+    id: createId(args.title, existingCount),
+    createdAt: new Date().toISOString(),
+    title: String(args.title).trim(),
+    summary: String(args.summary).trim(),
+    requestedChange: String(args.requestedChange).trim(),
+    rationale: String(args.rationale).trim(),
+    kind: args.kind || "anti-pattern",
+    scope,
+    tags: normalizeArray(args.tags),
+    relatedPaths: normalizeArray(args.relatedPaths),
+    before: args.before ? String(args.before).trim() : "",
+    after: args.after ? String(args.after).trim() : "",
+    examples: normalizeArray(args.examples)
+  };
+}
+
 function handleToolCall(name, args) {
-  const entries = parseEntries(readStore());
+  args = args || {};
 
   if (name === "add_change") {
-    const entry = {
-      id: createId(args.title, entries.length),
-      createdAt: new Date().toISOString(),
-      title: String(args.title).trim(),
-      summary: String(args.summary).trim(),
-      requestedChange: String(args.requestedChange).trim(),
-      rationale: String(args.rationale).trim(),
-      kind: args.kind || "anti-pattern",
-      scope: args.scope || "global",
-      tags: normalizeArray(args.tags),
-      relatedPaths: normalizeArray(args.relatedPaths),
-      before: args.before ? String(args.before).trim() : "",
-      after: args.after ? String(args.after).trim() : "",
-      examples: normalizeArray(args.examples)
-    };
+    const changesPath = projectChangesPath(args);
+    const entries = readProjectEntries(args);
+    const entry = buildEntry(args, entries.length, "repo");
 
-    appendEntry(entry);
-    return success(`Cambio guardado.\n\n${serializeEntry(entry)}`);
+    appendEntry(entry, changesPath);
+    entry._store = "project";
+    entry._projectKey = resolveProjectKey(args);
+    entry._path = changesPath;
+    return success(`Cambio guardado en memoria de proyecto.\n\n${serializeEntry(entry)}`);
+  }
+
+  if (name === "add_change_global") {
+    const changesPath = globalChangesPath();
+    const entries = readGlobalEntries();
+    const entry = buildEntry(args, entries.length, "global");
+
+    appendEntry(entry, changesPath);
+    entry._store = "global";
+    entry._path = changesPath;
+    return success(`Cambio guardado en memoria global.\n\n${serializeEntry(entry)}`);
   }
 
   if (name === "list_changes") {
+    const entries = readScopedEntries(args);
     const limit = Math.max(1, Math.min(Number(args?.limit || 20), 100));
     const sorted = [...entries]
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
@@ -364,6 +543,7 @@ function handleToolCall(name, args) {
   }
 
   if (name === "get_change") {
+    const entries = readScopedEntries(args);
     const entry = entries.find((item) => item.id === args.id);
     if (!entry) {
       throw new Error(`No existe el cambio con id ${args.id}`);
@@ -374,7 +554,7 @@ function handleToolCall(name, args) {
 
   if (name === "search_changes") {
     const limit = Math.max(1, Math.min(Number(args?.limit || 5), 20));
-    const results = searchEntries(args.query, limit);
+    const results = searchEntries(args.query, limit, args);
 
     if (results.length === 0) {
       return success(`No se encontraron cambios para: ${args.query}`);
@@ -389,7 +569,7 @@ function handleToolCall(name, args) {
 
   if (name === "get_relevant_changes") {
     const limit = Math.max(1, Math.min(Number(args?.limit || 5), 20));
-    const results = searchEntries(args.task, limit);
+    const results = searchEntries(args.task, limit, args);
 
     if (results.length === 0) {
       return success(
@@ -405,7 +585,7 @@ function handleToolCall(name, args) {
 
     for (const { entry, score } of results) {
       response.push(
-        `- ${entry.id} | ${entry.title} | score=${score}`,
+        `- ${entry.id} | ${entry.title} | store=${entry._store || "-"} | score=${score}`,
         `  Cambio pedido: ${entry.requestedChange}`,
         `  Por que: ${entry.rationale}`
       );
@@ -494,7 +674,7 @@ function handleMessage(message) {
 }
 
 function start() {
-  ensureStore();
+  ensureStore(globalChangesPath());
 
   let buffer = "";
   process.stdin.setEncoding("utf8");
