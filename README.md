@@ -43,6 +43,15 @@ command = "node"
 args = ["/ruta/a/knowledge-memory/src/index.js"]
 ```
 
+Si quieres cambiar donde se guarda la memoria:
+
+```toml
+[mcp_servers.changes_memory.env]
+CHANGES_MEMORY_ROOT = "/ruta/al/repo-o-directorio"
+# O, si quieres apuntar al fichero exacto:
+# CHANGES_MEMORY_PATH = "/ruta/al/changes.md"
+```
+
 Despues de guardar la configuracion, reinicia Codex para asegurar la recarga del MCP.
 
 ## Instruccion recomendada para agentes
