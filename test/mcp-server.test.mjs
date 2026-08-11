@@ -93,20 +93,20 @@ test("stores project and global memory under one store root", async () => {
     args: [`--store-root=${storeRoot}`, `--project-path=${projectRoot}`],
     calls: [
       {
-        name: "add_change",
+        name: "add_local",
         arguments: {
           title: "Project memory",
           summary: "Store under project scope.",
-          requestedChange: "Use add_change for project criteria.",
+          requestedChange: "Use add_local for project criteria.",
           rationale: "Project-specific criteria should not pollute global memory.",
         },
       },
       {
-        name: "add_change_global",
+        name: "add_global",
         arguments: {
           title: "Global memory",
           summary: "Store under global scope.",
-          requestedChange: "Use add_change_global for reusable criteria.",
+          requestedChange: "Use add_global for reusable criteria.",
           rationale: "Global criteria should be available to every project.",
         },
       },
@@ -144,7 +144,7 @@ test("supports projectPath argument for multiple projects in one server", async 
     args: [`--store-root=${storeRoot}`],
     calls: [
       {
-        name: "add_change",
+        name: "add_local",
         arguments: {
           projectPath: projectA,
           title: "Project A",
@@ -154,7 +154,7 @@ test("supports projectPath argument for multiple projects in one server", async 
         },
       },
       {
-        name: "add_change",
+        name: "add_local",
         arguments: {
           projectPath: projectB,
           title: "Project B",

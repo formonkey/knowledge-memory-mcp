@@ -57,7 +57,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
   "2024-11-05"
 ];
 const SERVER_INSTRUCTIONS =
-  "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo. Usa add_change para memoria del proyecto y add_change_global solo cuando el usuario pida guardar un aprendizaje reutilizable transversal.";
+  "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo. Usa add_local para memoria del proyecto y add_global solo cuando el usuario pida guardar un aprendizaje reutilizable transversal.";
 
 function stableProjectKey(projectPath) {
   const absolutePath = path.resolve(projectPath || DEFAULT_PROJECT_PATH);
@@ -323,8 +323,8 @@ function listTools() {
 
   return [
     {
-      name: "add_change",
-      title: "Guardar Cambio",
+      name: "add_local",
+      title: "Guardar Local",
       description: "Guarda una nueva correccion o criterio aprendido en la memoria del proyecto.",
       annotations: {
         readOnlyHint: false
@@ -363,8 +363,8 @@ function listTools() {
       }
     },
     {
-      name: "add_change_global",
-      title: "Guardar Cambio Global",
+      name: "add_global",
+      title: "Guardar Global",
       description: "Guarda una correccion o criterio transversal en la memoria global.",
       annotations: {
         readOnlyHint: false
@@ -505,7 +505,7 @@ function buildEntry(args, existingCount, scope) {
 function handleToolCall(name, args) {
   args = args || {};
 
-  if (name === "add_change") {
+  if (name === "add_local") {
     const changesPath = projectChangesPath(args);
     const entries = readProjectEntries(args);
     const entry = buildEntry(args, entries.length, "repo");
@@ -517,7 +517,7 @@ function handleToolCall(name, args) {
     return success(`Cambio guardado en memoria de proyecto.\n\n${serializeEntry(entry)}`);
   }
 
-  if (name === "add_change_global") {
+  if (name === "add_global") {
     const changesPath = globalChangesPath();
     const entries = readGlobalEntries();
     const entry = buildEntry(args, entries.length, "global");

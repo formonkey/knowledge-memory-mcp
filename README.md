@@ -33,14 +33,14 @@ Compatibilidad anterior:
 
 ## Herramientas MCP
 
-- `add_change`: guarda un nuevo cambio/correccion en la memoria del proyecto.
-- `add_change_global`: guarda un criterio transversal en la memoria global.
+- `add_local`: guarda un nuevo cambio/correccion en la memoria del proyecto.
+- `add_global`: guarda un criterio transversal en la memoria global.
 - `list_changes`: lista entradas del proyecto y global por defecto.
 - `search_changes`: busca por texto libre, tags o rutas.
 - `get_relevant_changes`: devuelve las entradas mas relevantes de proyecto + global para una tarea concreta.
 - `get_change`: recupera una entrada exacta por id buscando en proyecto + global.
 
-Las tools de consulta y `add_change` aceptan `projectPath`, `projectKey` o `project` para seleccionar proyecto cuando una conversacion trabaja con varios repos.
+Las tools de consulta y `add_local` aceptan `projectPath`, `projectKey` o `project` para seleccionar proyecto cuando una conversacion trabaja con varios repos.
 
 ## Ejecucion desde GitHub
 
