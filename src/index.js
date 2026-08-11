@@ -6,10 +6,30 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
-const ROOT = path.resolve(process.env.CHANGES_MEMORY_ROOT || DEFAULT_ROOT);
+
+function parseCliArgs(argv) {
+  const args = {};
+
+  for (const item of argv) {
+    const [key, ...rest] = item.split("=");
+    const value = rest.join("=");
+
+    if (key === "--memory-root" && value) {
+      args.memoryRoot = value;
+    }
+
+    if (key === "--memory-path" && value) {
+      args.memoryPath = value;
+    }
+  }
+
+  return args;
+}
+
+const CLI_ARGS = parseCliArgs(process.argv.slice(2));
+const ROOT = path.resolve(CLI_ARGS.memoryRoot || process.env.CHANGES_MEMORY_ROOT || process.cwd());
 const CHANGES_PATH = path.resolve(
-  process.env.CHANGES_MEMORY_PATH || path.join(ROOT, ".codex", "changes.md")
+  CLI_ARGS.memoryPath || process.env.CHANGES_MEMORY_PATH || path.join(ROOT, ".codex", "changes.md")
 );
 const SERVER_INFO = {
   name: "changes-memory-mcp",

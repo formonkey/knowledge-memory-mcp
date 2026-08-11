@@ -1,15 +1,36 @@
 {
-  "name": "changes-memory-mcp",
+  "name": "@formonkey/knowledge-memory-mcp",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "MCP local para guardar y recuperar cambios/correcciones pedidas por el usuario.",
+  "license": "MIT",
+  "author": "formonkey",
   "type": "module",
   "bin": {
     "changes-memory-mcp": "./src/index.js"
   },
   "scripts": {
-    "start": "node ./src/index.js"
+    "start": "node ./src/index.js",
+    "test": "node --check src/index.js && node --test test/*.mjs",
+    "prepare": "node --check src/index.js",
+    "prepublishOnly": "npm test"
   },
+  "keywords": [
+    "mcp",
+    "codex",
+    "memory",
+    "changes"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/formonkey/knowledge-memory-mcp.git"
+  },
+  "files": [
+    "src/**/*",
+    "README.md",
+    "LICENSE",
+    ".codex/changes.md"
+  ],
   "engines": {
     "node": ">=18"
   }

@@ -12,10 +12,12 @@ MCP local para capturar correcciones y criterios que quieres reutilizar entre co
 
 El fichero persistente es:
 
-- `.codex/changes.md` dentro de este repositorio por defecto.
+- `.codex/changes.md` dentro del directorio desde el que Codex arranca el MCP (`cwd`) por defecto.
 
-Puedes cambiarlo con variables de entorno:
+Puedes cambiarlo con argumentos o variables de entorno:
 
+- `--memory-root=/ruta/al/repo`: directorio raiz donde se usara `.codex/changes.md`.
+- `--memory-path=/ruta/al/changes.md`: ruta exacta del fichero de memoria.
 - `CHANGES_MEMORY_ROOT`: directorio raiz donde se usara `.codex/changes.md`.
 - `CHANGES_MEMORY_PATH`: ruta exacta del fichero de memoria.
 
@@ -27,29 +29,64 @@ Puedes cambiarlo con variables de entorno:
 - `get_relevant_changes`: devuelve las entradas mas relevantes para una tarea concreta.
 - `get_change`: recupera una entrada exacta por id.
 
-## Ejecucion
+## Ejecucion desde GitHub
 
 ```sh
-node /ruta/a/knowledge-memory/src/index.js
+npx -y --package github:formonkey/knowledge-memory-mcp#main changes-memory-mcp --memory-root=/ruta/a/tu/proyecto
+```
+
+## Ejecucion desde checkout local
+
+```sh
+node /ruta/a/knowledge-memory-mcp/src/index.js --memory-root=/ruta/a/tu/proyecto
 ```
 
 ## Configuracion MCP en Codex
 
-Ejemplo de bloque para tu `~/.codex/config.toml`:
+Project-level config en `.codex/config.toml`.
+
+Recomendado, directamente desde GitHub:
+
+```toml
+[mcp_servers.changes_memory]
+command = "npx"
+args = [
+  "-y",
+  "--package",
+  "github:formonkey/knowledge-memory-mcp#main",
+  "changes-memory-mcp",
+  "--memory-root=/absolute/path/to/your/project"
+]
+cwd = "/absolute/path/to/your/project"
+enabled = true
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "auto"
+```
+
+Checkout local:
 
 ```toml
 [mcp_servers.changes_memory]
 command = "node"
-args = ["/ruta/a/knowledge-memory/src/index.js"]
+args = [
+  "/absolute/path/to/knowledge-memory-mcp/src/index.js",
+  "--memory-root=/absolute/path/to/your/project"
+]
+cwd = "/absolute/path/to/your/project"
+enabled = true
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "auto"
 ```
 
-Si quieres cambiar donde se guarda la memoria:
+Alternativa con variables de entorno:
 
 ```toml
 [mcp_servers.changes_memory.env]
-CHANGES_MEMORY_ROOT = "/ruta/al/repo-o-directorio"
+CHANGES_MEMORY_ROOT = "/absolute/path/to/your/project"
 # O, si quieres apuntar al fichero exacto:
-# CHANGES_MEMORY_PATH = "/ruta/al/changes.md"
+# CHANGES_MEMORY_PATH = "/absolute/path/to/changes.md"
 ```
 
 Despues de guardar la configuracion, reinicia Codex para asegurar la recarga del MCP.
