@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -21,12 +20,12 @@ function parseCliArgs(argv) {
       args.memoryPath = value;
     }
 
-    if (key === "--store-root" && value) {
-      args.storeRoot = value;
-    }
-
     if (key === "--project-path" && value) {
       args.projectPath = value;
+    }
+
+    if (key === "--global-path" && value) {
+      args.globalPath = value;
     }
   }
 
@@ -34,10 +33,10 @@ function parseCliArgs(argv) {
 }
 
 const CLI_ARGS = parseCliArgs(process.argv.slice(2));
-const STORE_ROOT = path.resolve(
-  CLI_ARGS.storeRoot ||
-    process.env.CHANGES_MEMORY_STORE_ROOT ||
-    path.join(os.homedir(), ".codex", "changes-memory")
+const GLOBAL_CHANGES_PATH = path.resolve(
+  CLI_ARGS.globalPath ||
+    process.env.CHANGES_MEMORY_GLOBAL_PATH ||
+    path.join(os.homedir(), ".codex", "changes.md")
 );
 const DEFAULT_PROJECT_PATH = path.resolve(
   CLI_ARGS.projectPath ||
@@ -59,35 +58,20 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
 const SERVER_INSTRUCTIONS =
   "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo. Usa add_local para memoria del proyecto y add_global solo cuando el usuario pida guardar un aprendizaje reutilizable transversal.";
 
-function stableProjectKey(projectPath) {
-  const absolutePath = path.resolve(projectPath || DEFAULT_PROJECT_PATH);
-  const base = slugify(path.basename(absolutePath)) || "project";
-  const hash = crypto.createHash("sha1").update(absolutePath).digest("hex").slice(0, 8);
-  return `${base}-${hash}`;
-}
-
-function resolveProjectKey(args = {}) {
-  if (args.projectKey) {
-    return slugify(args.projectKey) || "project";
-  }
-
-  if (args.project) {
-    return slugify(args.project) || "project";
-  }
-
-  return stableProjectKey(args.projectPath || DEFAULT_PROJECT_PATH);
+function resolveProjectPath(args = {}) {
+  return path.resolve(args.projectPath || DEFAULT_PROJECT_PATH);
 }
 
 function globalChangesPath() {
-  return path.join(STORE_ROOT, "global", "changes.md");
+  return GLOBAL_CHANGES_PATH;
 }
 
 function projectChangesPath(args = {}) {
-  if (DEFAULT_PROJECT_MEMORY_PATH && !args.projectPath && !args.projectKey && !args.project) {
+  if (DEFAULT_PROJECT_MEMORY_PATH && !args.projectPath) {
     return path.resolve(DEFAULT_PROJECT_MEMORY_PATH);
   }
 
-  return path.join(STORE_ROOT, "projects", resolveProjectKey(args), "changes.md");
+  return path.join(resolveProjectPath(args), ".codex", "changes.md");
 }
 
 function ensureStore(changesPath) {
@@ -149,7 +133,7 @@ function parseEntries(markdown, source = {}) {
       const entry = JSON.parse(match[2]);
       entry._heading = match[1];
       entry._store = source.store || "";
-      entry._projectKey = source.projectKey || "";
+      entry._projectPath = source.projectPath || "";
       entry._path = source.path || "";
       entries.push(entry);
     } catch {
@@ -186,10 +170,10 @@ function readGlobalEntries() {
 
 function readProjectEntries(args = {}) {
   const changesPath = projectChangesPath(args);
-  const projectKey = resolveProjectKey(args);
+  const projectPath = resolveProjectPath(args);
   return parseEntries(readStore(changesPath), {
     store: "project",
-    projectKey,
+    projectPath,
     path: changesPath
   });
 }
@@ -214,7 +198,7 @@ function serializeEntry(entry) {
   return [
     `ID: ${entry.id}`,
     `Store: ${entry._store || entry.scope || "-"}`,
-    entry._projectKey ? `Proyecto: ${entry._projectKey}` : "",
+    entry._projectPath ? `Proyecto: ${entry._projectPath}` : "",
     `Titulo: ${entry.title}`,
     `Resumen: ${entry.summary}`,
     `Cambio pedido: ${entry.requestedChange}`,
@@ -299,15 +283,7 @@ function listTools() {
   const projectSelectors = {
     projectPath: {
       type: "string",
-      description: "Ruta absoluta del proyecto cuya memoria se quiere usar. Si se omite, se usa el proyecto por defecto del servidor."
-    },
-    projectKey: {
-      type: "string",
-      description: "Clave estable del proyecto. Alternativa a projectPath para stores compartidos."
-    },
-    project: {
-      type: "string",
-      description: "Alias legible del proyecto. Alternativa a projectPath/projectKey."
+      description: "Ruta absoluta del proyecto cuya memoria local se quiere usar. Si se omite, se usa el cwd o --project-path del servidor."
     }
   };
   const includeSelectors = {
@@ -512,7 +488,7 @@ function handleToolCall(name, args) {
 
     appendEntry(entry, changesPath);
     entry._store = "project";
-    entry._projectKey = resolveProjectKey(args);
+    entry._projectPath = resolveProjectPath(args);
     entry._path = changesPath;
     return success(`Cambio guardado en memoria de proyecto.\n\n${serializeEntry(entry)}`);
   }

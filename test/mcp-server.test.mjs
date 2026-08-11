@@ -84,13 +84,14 @@ function callServer({ cwd, args = [], calls }) {
   });
 }
 
-test("stores project and global memory under one store root", async () => {
-  const storeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-store-"));
+test("stores local memory in the project and global memory in the global file", async () => {
+  const globalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-global-"));
+  const globalPath = path.join(globalRoot, ".codex", "changes.md");
   const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-project-"));
 
   const messages = await callServer({
     cwd: projectRoot,
-    args: [`--store-root=${storeRoot}`, `--project-path=${projectRoot}`],
+    args: [`--global-path=${globalPath}`, `--project-path=${projectRoot}`],
     calls: [
       {
         name: "add_local",
@@ -123,10 +124,8 @@ test("stores project and global memory under one store root", async () => {
   assert.equal(messages[1].result.content[0].text.split("\n")[0], "Cambio guardado en memoria de proyecto.");
   assert.equal(messages[2].result.content[0].text.split("\n")[0], "Cambio guardado en memoria global.");
 
-  const projectFiles = fs.readdirSync(path.join(storeRoot, "projects"));
-  assert.equal(projectFiles.length, 1);
-  assert.match(fs.readFileSync(path.join(storeRoot, "projects", projectFiles[0], "changes.md"), "utf8"), /Project memory/);
-  assert.match(fs.readFileSync(path.join(storeRoot, "global", "changes.md"), "utf8"), /Global memory/);
+  assert.match(fs.readFileSync(path.join(projectRoot, ".codex", "changes.md"), "utf8"), /Project memory/);
+  assert.match(fs.readFileSync(globalPath, "utf8"), /Global memory/);
 
   const relevantText = messages[3].result.content[0].text;
   assert.match(relevantText, /store=project/);
@@ -135,13 +134,14 @@ test("stores project and global memory under one store root", async () => {
 
 test("supports projectPath argument for multiple projects in one server", async () => {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-run-"));
-  const storeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-store-"));
+  const globalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-global-"));
+  const globalPath = path.join(globalRoot, ".codex", "changes.md");
   const projectA = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-a-"));
   const projectB = fs.mkdtempSync(path.join(os.tmpdir(), "changes-memory-b-"));
 
   const messages = await callServer({
     cwd,
-    args: [`--store-root=${storeRoot}`],
+    args: [`--global-path=${globalPath}`],
     calls: [
       {
         name: "add_local",
@@ -177,4 +177,6 @@ test("supports projectPath argument for multiple projects in one server", async 
   const searchText = messages[3].result.content[0].text;
   assert.match(searchText, /Project A/);
   assert.doesNotMatch(searchText, /Project B/);
+  assert.match(fs.readFileSync(path.join(projectA, ".codex", "changes.md"), "utf8"), /Project A/);
+  assert.match(fs.readFileSync(path.join(projectB, ".codex", "changes.md"), "utf8"), /Project B/);
 });

@@ -12,10 +12,10 @@ This workspace uses the `changes_memory` MCP to remember corrections, criteria, 
 
 ## Shared Stores
 
-Persistent memory lives in one store with global memory and per-project memory:
+Persistent memory lives in plain Markdown files:
 
-- `global/changes.md`: cross-project criteria.
-- `projects/<project-key>/changes.md`: project-specific criteria.
+- `~/.codex/changes.md`: cross-project criteria.
+- `<project>/.codex/changes.md`: project-specific criteria.
 
 Agents must not edit those files manually. Interaction must go through the `changes_memory` MCP.
 
@@ -26,7 +26,7 @@ Before implementing, reviewing, or fixing code:
 - Call `get_relevant_changes` with a short, concrete task summary.
 - If you need to find a preference, recurring mistake, path, or specific concept, use `search_changes`.
 - If you already know the exact change id, use `get_change`.
-- When working with several projects in one conversation, pass `projectPath`, `projectKey`, or `project` to select the right project memory.
+- When working with several projects in one conversation, pass `projectPath` to select the right project memory.
 
 When the user corrects a pattern, recurring decision, or reusable criterion:
 

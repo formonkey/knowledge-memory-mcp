@@ -1,6 +1,6 @@
 # Changes Memory MCP
 
-Local MCP server for storing corrections, preferences, and reusable criteria across conversations, with a single Codex configuration and separate project + global memory stores.
+Local MCP server for storing corrections, preferences, and reusable criteria across conversations, with a single Codex configuration and separate global + project memory files.
 
 ## What It Solves
 
@@ -10,21 +10,19 @@ Local MCP server for storing corrections, preferences, and reusable criteria acr
 
 ## Memory Stores
 
-By default, memory is stored under:
+By default, memory is stored in plain Markdown files:
 
 ```text
-~/.codex/changes-memory/
-  global/changes.md
-  projects/
-    <project-key>/changes.md
+~/.codex/changes.md              # global memory
+<project>/.codex/changes.md      # project memory
 ```
 
 You can change this with CLI arguments or environment variables:
 
-- `--store-root=/path/to/store`: root directory for global + project stores.
 - `--project-path=/path/to/project`: default project when a tool call does not pass `projectPath`.
-- `CHANGES_MEMORY_STORE_ROOT`: equivalent to `--store-root`.
+- `--global-path=/path/to/changes.md`: exact file path for global memory.
 - `CHANGES_MEMORY_PROJECT_PATH`: equivalent to `--project-path`.
+- `CHANGES_MEMORY_GLOBAL_PATH`: equivalent to `--global-path`.
 
 Backward compatibility:
 
@@ -40,18 +38,18 @@ Backward compatibility:
 - `get_relevant_changes`: returns the most relevant project + global entries for a task.
 - `get_change`: retrieves an exact entry by id from project + global memory.
 
-Read tools and `add_local` accept `projectPath`, `projectKey`, or `project` to select the right project when a conversation touches multiple repositories.
+Read tools and `add_local` accept `projectPath` to select the right project when a conversation touches multiple repositories.
 
 ## Run From GitHub
 
 ```sh
-npx -y --package github:formonkey/knowledge-memory-mcp#main changes-memory-mcp --store-root=/path/to/store
+npx -y --package github:formonkey/knowledge-memory-mcp#main changes-memory-mcp
 ```
 
 ## Run From A Local Checkout
 
 ```sh
-node /path/to/knowledge-memory-mcp/src/index.js --store-root=/path/to/store
+node /path/to/knowledge-memory-mcp/src/index.js
 ```
 
 ## Codex MCP Configuration
@@ -67,8 +65,7 @@ args = [
   "-y",
   "--package",
   "github:formonkey/knowledge-memory-mcp#main",
-  "changes-memory-mcp",
-  "--store-root=/Users/nigma/.codex/changes-memory"
+  "changes-memory-mcp"
 ]
 enabled = true
 startup_timeout_sec = 20
@@ -82,8 +79,7 @@ Local checkout:
 [mcp_servers.changes_memory]
 command = "node"
 args = [
-  "/absolute/path/to/knowledge-memory-mcp/src/index.js",
-  "--store-root=/Users/nigma/.codex/changes-memory"
+  "/absolute/path/to/knowledge-memory-mcp/src/index.js"
 ]
 enabled = true
 startup_timeout_sec = 20
@@ -95,7 +91,7 @@ Environment-variable alternative:
 
 ```toml
 [mcp_servers.changes_memory.env]
-CHANGES_MEMORY_STORE_ROOT = "/Users/nigma/.codex/changes-memory"
+CHANGES_MEMORY_GLOBAL_PATH = "/Users/nigma/.codex/changes.md"
 ```
 
 After changing the config, restart Codex so the MCP server is reloaded.
