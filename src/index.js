@@ -55,8 +55,33 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
   "2025-03-26",
   "2024-11-05"
 ];
+const TAG_CATALOG = [
+  "api",
+  "backend",
+  "codex",
+  "components",
+  "config",
+  "database",
+  "docker",
+  "docs",
+  "frontend",
+  "git",
+  "i18n",
+  "json",
+  "mcp",
+  "migration",
+  "mongo",
+  "naming",
+  "opensearch",
+  "performance",
+  "security",
+  "styles",
+  "tests"
+];
+const TAG_GUIDANCE =
+  "Use 2-5 tags from this catalog when possible: " + TAG_CATALOG.join(", ") + ".";
 const SERVER_INSTRUCTIONS =
-  "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo. Usa add_local para memoria del proyecto y add_global solo cuando el usuario pida guardar un aprendizaje reutilizable transversal.";
+  "Consulta list_change_index antes de implementar, revisar o corregir codigo. Usa add_local para memoria del proyecto y add_global solo cuando el usuario pida guardar un aprendizaje reutilizable transversal. Incluye tags del catalogo al guardar memoria.";
 
 function resolveProjectPath(args = {}) {
   return path.resolve(args.projectPath || DEFAULT_PROJECT_PATH);
@@ -227,6 +252,16 @@ function serializeIndexEntry(entry) {
   ].filter(Boolean).join("\n");
 }
 
+function serializeTagCatalog() {
+  return [
+    "Recommended tags:",
+    "",
+    ...TAG_CATALOG.map((tag) => `- ${tag}`),
+    "",
+    "Use 2-5 tags per saved memory entry. Prefer existing tags; add a freeform tag only when the catalog cannot describe the criterion clearly."
+  ].join("\n");
+}
+
 function searchableText(entry) {
   return [
     entry.id,
@@ -309,6 +344,22 @@ function listTools() {
       description: "Incluye la memoria del proyecto. Por defecto true."
     }
   };
+  const tagsSchema = {
+    description: TAG_GUIDANCE,
+    oneOf: [
+      {
+        type: "array",
+        items: {
+          type: "string",
+          enum: TAG_CATALOG
+        }
+      },
+      {
+        type: "string",
+        description: "Comma-separated tags. Prefer values from the recommended catalog."
+      }
+    ]
+  };
 
   return [
     {
@@ -327,12 +378,7 @@ function listTools() {
           requestedChange: { type: "string" },
           rationale: { type: "string" },
           kind: { type: "string", enum: ["preference", "repo-convention", "domain-fact", "anti-pattern"] },
-          tags: {
-            oneOf: [
-              { type: "array", items: { type: "string" } },
-              { type: "string" }
-            ]
-          },
+          tags: tagsSchema,
           relatedPaths: {
             oneOf: [
               { type: "array", items: { type: "string" } },
@@ -348,7 +394,7 @@ function listTools() {
             ]
           }
         },
-        required: ["title", "summary", "requestedChange", "rationale"]
+        required: ["title", "summary", "requestedChange", "rationale", "tags"]
       }
     },
     {
@@ -366,12 +412,7 @@ function listTools() {
           requestedChange: { type: "string" },
           rationale: { type: "string" },
           kind: { type: "string", enum: ["preference", "repo-convention", "domain-fact", "anti-pattern"] },
-          tags: {
-            oneOf: [
-              { type: "array", items: { type: "string" } },
-              { type: "string" }
-            ]
-          },
+          tags: tagsSchema,
           relatedPaths: {
             oneOf: [
               { type: "array", items: { type: "string" } },
@@ -387,7 +428,7 @@ function listTools() {
             ]
           }
         },
-        required: ["title", "summary", "requestedChange", "rationale"]
+        required: ["title", "summary", "requestedChange", "rationale", "tags"]
       }
     },
     {
@@ -424,6 +465,18 @@ function listTools() {
           },
           limit: { type: "integer", minimum: 1, maximum: 200 }
         }
+      }
+    },
+    {
+      name: "list_tag_catalog",
+      title: "Listar Tags",
+      description: "Lista el catalogo recomendado de tags para usar al guardar memoria con add_local o add_global.",
+      annotations: {
+        readOnlyHint: true
+      },
+      inputSchema: {
+        type: "object",
+        properties: {}
       }
     },
     {
@@ -494,6 +547,11 @@ function success(text) {
 }
 
 function buildEntry(args, existingCount, scope) {
+  const tags = normalizeArray(args.tags);
+  if (tags.length === 0) {
+    throw new Error("tags is required. Use 2-5 tags from list_tag_catalog.");
+  }
+
   return {
     id: createId(args.title, existingCount),
     createdAt: new Date().toISOString(),
@@ -503,7 +561,7 @@ function buildEntry(args, existingCount, scope) {
     rationale: String(args.rationale).trim(),
     kind: args.kind || "anti-pattern",
     scope,
-    tags: normalizeArray(args.tags),
+    tags,
     relatedPaths: normalizeArray(args.relatedPaths),
     before: args.before ? String(args.before).trim() : "",
     after: args.after ? String(args.after).trim() : "",
@@ -574,6 +632,10 @@ function handleToolCall(name, args) {
         })
         .join("\n")
     );
+  }
+
+  if (name === "list_tag_catalog") {
+    return success(serializeTagCatalog());
   }
 
   if (name === "get_change") {

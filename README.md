@@ -34,12 +34,25 @@ Backward compatibility:
 - `add_local`: stores a new correction or criterion in project memory.
 - `add_global`: stores a cross-project criterion in global memory.
 - `list_change_index`: lists a compact index of entries with id, title, store, kind, tags, and paths.
+- `list_tag_catalog`: lists the recommended tag catalog for memory entries.
 - `list_changes`: lists project + global entries by default.
 - `search_changes`: searches entries by free text, tags, or paths.
 - `get_relevant_changes`: returns the most relevant project + global entries for a task.
 - `get_change`: retrieves an exact entry by id from project + global memory.
 
 Read tools and `add_local` accept `projectPath` to select the right project when a conversation touches multiple repositories.
+
+## Recommended Tags
+
+Every `add_local` and `add_global` call must include `tags`. Prefer 2-5 tags from this catalog:
+
+```text
+api, backend, codex, components, config, database, docker, docs, frontend,
+git, i18n, json, mcp, migration, mongo, naming, opensearch, performance,
+security, styles, tests
+```
+
+Use `list_tag_catalog` when unsure which tags fit. Tags are what make `list_change_index` useful without loading full entries.
 
 ## Run From GitHub
 
@@ -106,7 +119,7 @@ Before implementing or reviewing changes, call `list_change_index` on the `knowl
 
 When a conversation touches multiple projects, pass `projectPath` in tool calls to select the correct local memory.
 
-Do not store memory on your own initiative. If the user confirms that a learning should be saved, use `add_local` for project-specific criteria and `add_global` only for criteria that apply across projects.
+Do not store memory on your own initiative. If the user confirms that a learning should be saved, use `add_local` for project-specific criteria and `add_global` only for criteria that apply across projects. Always include 2-5 tags from the catalog.
 ```
 
 ## Notes

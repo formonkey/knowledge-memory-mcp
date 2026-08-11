@@ -24,6 +24,7 @@ Agents must not edit those files manually. Interaction must go through the `know
 Before implementing, reviewing, or fixing code:
 
 - Call `list_change_index` first to inspect the compact index without spending many tokens.
+- Use tags from the index to decide which entries to retrieve.
 - Then call `get_change`, `search_changes`, or `get_relevant_changes` only for entries that look relevant to the task.
 - If you need to find a preference, recurring mistake, path, or specific concept, use `search_changes`.
 - If you already know the exact change id, use `get_change`.
@@ -44,7 +45,7 @@ Required flow before `add_local` or `add_global`:
 1. Finish the correction or collect the latest relevant changes.
 2. Prepare a short proposal describing what should be saved.
 3. Ask the user for explicit validation.
-4. Only if the user confirms, call `add_local` for project memory or `add_global` for cross-project memory.
+4. Only if the user confirms, call `add_local` for project memory or `add_global` for cross-project memory, always including tags.
 
 The agent must not treat a correction as implicit permission to persist memory.
 
@@ -60,7 +61,16 @@ Fill fields clearly and reuseably:
 - `rationale`: why this change should apply.
 - `kind`: use `preference`, `repo-convention`, `domain-fact`, or `anti-pattern`.
 - `scope`: `add_local` uses project scope; `add_global` uses global scope.
-- `tags`, `relatedPaths`, `before`, `after`, and `examples`: include them when they make the entry easier to retrieve and apply.
+- `tags`: required. Use 2-5 tags from the catalog below. Call `list_tag_catalog` when unsure.
+- `relatedPaths`, `before`, `after`, and `examples`: include them when they make the entry easier to retrieve and apply.
+
+Recommended tag catalog:
+
+```text
+api, backend, codex, components, config, database, docker, docs, frontend,
+git, i18n, json, mcp, migration, mongo, naming, opensearch, performance,
+security, styles, tests
+```
 
 ## References To Recent Fixes
 

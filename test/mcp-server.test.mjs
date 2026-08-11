@@ -100,6 +100,7 @@ test("stores local memory in the project and global memory in the global file", 
           summary: "Store under project scope.",
           requestedChange: "Use add_local for project criteria.",
           rationale: "Project-specific criteria should not pollute global memory.",
+          tags: ["mcp", "config"],
         },
       },
       {
@@ -109,6 +110,7 @@ test("stores local memory in the project and global memory in the global file", 
           summary: "Store under global scope.",
           requestedChange: "Use add_global for reusable criteria.",
           rationale: "Global criteria should be available to every project.",
+          tags: ["codex", "mcp"],
         },
       },
       {
@@ -116,6 +118,10 @@ test("stores local memory in the project and global memory in the global file", 
         arguments: {
           task: "project global criteria",
         },
+      },
+      {
+        name: "list_tag_catalog",
+        arguments: {},
       },
       {
         name: "list_change_index",
@@ -137,7 +143,13 @@ test("stores local memory in the project and global memory in the global file", 
   assert.match(relevantText, /store=project/);
   assert.match(relevantText, /store=global/);
 
-  const indexText = messages[4].result.content[0].text;
+  const tagText = messages[4].result.content[0].text;
+  assert.match(tagText, /components/);
+  assert.match(tagText, /json/);
+  assert.match(tagText, /mongo/);
+  assert.match(tagText, /styles/);
+
+  const indexText = messages[5].result.content[0].text;
   assert.match(indexText, /Project memory/);
   assert.match(indexText, /Global memory/);
   assert.match(indexText, /Kind:/);
@@ -163,6 +175,7 @@ test("supports projectPath argument for multiple projects in one server", async 
           summary: "Only project A.",
           requestedChange: "Keep project A separate.",
           rationale: "One MCP can serve several projects.",
+          tags: ["mcp", "config"],
         },
       },
       {
@@ -173,6 +186,7 @@ test("supports projectPath argument for multiple projects in one server", async 
           summary: "Only project B.",
           requestedChange: "Keep project B separate.",
           rationale: "One MCP can serve several projects.",
+          tags: ["mcp", "config"],
         },
       },
       {
