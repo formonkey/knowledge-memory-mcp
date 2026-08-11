@@ -106,6 +106,10 @@ Si quieres forzar el uso, anade una regla en tus instrucciones globales o por re
 
 ```md
 Antes de implementar o revisar cambios, consulta `get_relevant_changes` en el MCP `changes_memory` con un resumen de la tarea y aplica los criterios recuperados si siguen siendo pertinentes.
+
+Cuando una conversacion toque varios proyectos, pasa `projectPath` en las tools para seleccionar la memoria local correcta.
+
+No guardes memoria por iniciativa propia. Si el usuario confirma guardar un aprendizaje, usa `add_local` para criterios especificos del proyecto y `add_global` solo para criterios transversales entre proyectos.
 ```
 
 ## Notas
