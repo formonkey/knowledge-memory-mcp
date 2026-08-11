@@ -21,6 +21,17 @@ Agents must not edit those files manually. Interaction must go through the `know
 
 ## Mandatory `knowledge_memory` Usage
 
+Available tools:
+
+- `add_local`: save a project-specific memory entry.
+- `add_global`: save a cross-project memory entry.
+- `list_change_index`: read the compact low-token index.
+- `list_tag_catalog`: read the recommended tags for saved entries.
+- `list_changes`: read full entries from project + global memory.
+- `get_change`: read one exact entry by id.
+- `search_changes`: search entries by text, tags, or paths.
+- `get_relevant_changes`: retrieve entries relevant to a task summary.
+
 Before implementing, reviewing, or fixing code:
 
 - Call `list_change_index` first to inspect the compact index without spending many tokens.
