@@ -7,6 +7,7 @@
   "author": "formonkey",
   "type": "module",
   "bin": {
+    "knowledge-memory-mcp": "./src/index.js",
     "changes-memory-mcp": "./src/index.js"
   },
   "scripts": {

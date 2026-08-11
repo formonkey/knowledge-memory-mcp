@@ -43,7 +43,7 @@ Read tools and `add_local` accept `projectPath` to select the right project when
 ## Run From GitHub
 
 ```sh
-npx -y --package github:formonkey/knowledge-memory-mcp#main changes-memory-mcp
+npx -y --package github:formonkey/knowledge-memory-mcp#main knowledge-memory-mcp
 ```
 
 ## Run From A Local Checkout
@@ -59,13 +59,13 @@ Use one global config in `~/.codex/config.toml`.
 Recommended setup, directly from GitHub:
 
 ```toml
-[mcp_servers.changes_memory]
+[mcp_servers.knowledge_memory]
 command = "npx"
 args = [
   "-y",
   "--package",
   "github:formonkey/knowledge-memory-mcp#main",
-  "changes-memory-mcp"
+  "knowledge-memory-mcp"
 ]
 enabled = true
 startup_timeout_sec = 20
@@ -76,7 +76,7 @@ default_tools_approval_mode = "auto"
 Local checkout:
 
 ```toml
-[mcp_servers.changes_memory]
+[mcp_servers.knowledge_memory]
 command = "node"
 args = [
   "/absolute/path/to/knowledge-memory-mcp/src/index.js"
@@ -90,7 +90,7 @@ default_tools_approval_mode = "auto"
 Environment-variable alternative:
 
 ```toml
-[mcp_servers.changes_memory.env]
+[mcp_servers.knowledge_memory.env]
 CHANGES_MEMORY_GLOBAL_PATH = "/Users/nigma/.codex/changes.md"
 ```
 
@@ -101,7 +101,7 @@ After changing the config, restart Codex so the MCP server is reloaded.
 Add a rule like this to global or repository instructions when you want agents to use this memory:
 
 ```md
-Before implementing or reviewing changes, call `get_relevant_changes` on the `changes_memory` MCP server with a short summary of the task, then apply the retrieved criteria when they are still relevant.
+Before implementing or reviewing changes, call `get_relevant_changes` on the `knowledge_memory` MCP server with a short summary of the task, then apply the retrieved criteria when they are still relevant.
 
 When a conversation touches multiple projects, pass `projectPath` in tool calls to select the correct local memory.
 

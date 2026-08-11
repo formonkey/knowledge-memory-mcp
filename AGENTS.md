@@ -4,11 +4,11 @@
 
 `AGENTS.md` is guidance for Codex agents working inside this repository. It is not part of the MCP runtime and is not required by users who only consume the MCP through `npx`.
 
-Its job is to tell agents how to use the `changes_memory` MCP consistently while editing, reviewing, or maintaining this repository.
+Its job is to tell agents how to use the `knowledge_memory` MCP consistently while editing, reviewing, or maintaining this repository.
 
 ## Objective
 
-This workspace uses the `changes_memory` MCP to remember corrections, criteria, and recurring mistakes across conversations. Any agent that implements, reviews, or fixes work should consult and apply those criteria when they are still relevant.
+This workspace uses the `knowledge_memory` MCP to remember corrections, criteria, and recurring mistakes across conversations. Any agent that implements, reviews, or fixes work should consult and apply those criteria when they are still relevant.
 
 ## Shared Stores
 
@@ -17,9 +17,9 @@ Persistent memory lives in plain Markdown files:
 - `~/.codex/changes.md`: cross-project criteria.
 - `<project>/.codex/changes.md`: project-specific criteria.
 
-Agents must not edit those files manually. Interaction must go through the `changes_memory` MCP.
+Agents must not edit those files manually. Interaction must go through the `knowledge_memory` MCP.
 
-## Mandatory `changes_memory` Usage
+## Mandatory `knowledge_memory` Usage
 
 Before implementing, reviewing, or fixing code:
 

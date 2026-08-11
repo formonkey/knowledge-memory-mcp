@@ -47,7 +47,7 @@ const DEFAULT_PROJECT_PATH = path.resolve(
 );
 const DEFAULT_PROJECT_MEMORY_PATH = CLI_ARGS.memoryPath || process.env.CHANGES_MEMORY_PATH || "";
 const SERVER_INFO = {
-  name: "changes-memory-mcp",
+  name: "knowledge-memory-mcp",
   version: "0.1.0"
 };
 const SUPPORTED_PROTOCOL_VERSIONS = [

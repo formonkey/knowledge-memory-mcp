@@ -120,7 +120,7 @@ test("stores local memory in the project and global memory in the global file", 
     ],
   });
 
-  assert.equal(messages[0].result.serverInfo.name, "changes-memory-mcp");
+  assert.equal(messages[0].result.serverInfo.name, "knowledge-memory-mcp");
   assert.equal(messages[1].result.content[0].text.split("\n")[0], "Cambio guardado en memoria de proyecto.");
   assert.equal(messages[2].result.content[0].text.split("\n")[0], "Cambio guardado en memoria global.");
 
