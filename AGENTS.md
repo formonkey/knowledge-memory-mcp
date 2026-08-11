@@ -1,98 +1,104 @@
 # Agent Instructions
 
-## Objetivo
+## Purpose Of This File
 
-Este workspace usa el MCP `changes_memory` para recordar correcciones, criterios y errores recurrentes entre conversaciones. Cualquier agente que implemente, revise o corrija trabajo debe consultar y aplicar esos criterios cuando sigan siendo pertinentes.
+`AGENTS.md` is guidance for Codex agents working inside this repository. It is not part of the MCP runtime and is not required by users who only consume the MCP through `npx`.
 
-## Stores compartidos
+Its job is to tell agents how to use the `changes_memory` MCP consistently while editing, reviewing, or maintaining this repository.
 
-La memoria persistente vive en un store unico con una memoria global y memorias por proyecto:
+## Objective
 
-- `global/changes.md`: criterios transversales.
-- `projects/<project-key>/changes.md`: criterios especificos de un proyecto.
+This workspace uses the `changes_memory` MCP to remember corrections, criteria, and recurring mistakes across conversations. Any agent that implements, reviews, or fixes work should consult and apply those criteria when they are still relevant.
 
-Los agentes no deben editar esos ficheros manualmente. La interaccion debe hacerse a traves del MCP `changes_memory`.
+## Shared Stores
 
-## Uso obligatorio del MCP `changes_memory`
+Persistent memory lives in one store with global memory and per-project memory:
 
-Antes de implementar, revisar o corregir codigo:
+- `global/changes.md`: cross-project criteria.
+- `projects/<project-key>/changes.md`: project-specific criteria.
 
-- Llama a `get_relevant_changes` con un resumen breve y concreto de la tarea.
-- Si necesitas buscar una preferencia, error recurrente, ruta o concepto concreto, usa `search_changes`.
-- Si ya conoces el identificador exacto de un cambio, usa `get_change`.
-- Cuando trabajes con varios proyectos en una conversacion, pasa `projectPath`, `projectKey` o `project` para seleccionar el proyecto correcto.
+Agents must not edit those files manually. Interaction must go through the `changes_memory` MCP.
 
-Cuando el usuario corrija un patron, una decision recurrente o un criterio reutilizable:
+## Mandatory `changes_memory` Usage
 
-- No llames a `add_local` ni `add_global` por iniciativa propia.
-- Solo guarda un aprendizaje si el usuario lo pide explicitamente.
-- El guardado debe hacerse despues de la correccion, no antes.
-- No guardes detalles pasajeros o ruido de una tarea aislada.
-- Guarda solo cambios que puedan evitar futuros errores o mejorar la consistencia entre conversaciones.
+Before implementing, reviewing, or fixing code:
 
-## Politica de guardado con validacion del usuario
+- Call `get_relevant_changes` with a short, concrete task summary.
+- If you need to find a preference, recurring mistake, path, or specific concept, use `search_changes`.
+- If you already know the exact change id, use `get_change`.
+- When working with several projects in one conversation, pass `projectPath`, `projectKey`, or `project` to select the right project memory.
 
-Flujo obligatorio antes de `add_local` o `add_global`:
+When the user corrects a pattern, recurring decision, or reusable criterion:
 
-1. El agente termina la correccion o recopila los ultimos cambios relevantes.
-2. El agente prepara una propuesta breve de lo que entiende que deberia guardarse.
-3. El agente pide validacion explicita del usuario.
-4. Solo si el usuario confirma, llama a `add_local` para memoria de proyecto o `add_global` para memoria transversal.
+- Do not call `add_local` or `add_global` on your own initiative.
+- Save a learning only if the user explicitly asks for it.
+- Save after the correction, not before.
+- Do not save temporary details or one-off task noise.
+- Save only changes that can prevent future mistakes or improve consistency across conversations.
 
-El agente no debe interpretar una correccion como permiso implicito para persistirla.
+## Save Policy With User Validation
 
-## Como registrar un cambio
+Required flow before `add_local` or `add_global`:
 
-Usa `add_local` para criterios especificos del proyecto actual. Usa `add_global` solo cuando el criterio sea claramente reutilizable entre proyectos.
+1. Finish the correction or collect the latest relevant changes.
+2. Prepare a short proposal describing what should be saved.
+3. Ask the user for explicit validation.
+4. Only if the user confirms, call `add_local` for project memory or `add_global` for cross-project memory.
 
-Rellena los campos de forma clara y reutilizable:
+The agent must not treat a correction as implicit permission to persist memory.
 
-- `title`: criterio corto y directo.
-- `summary`: contexto del error, correccion o preferencia detectada.
-- `requestedChange`: comportamiento esperado a partir de ahora.
-- `rationale`: motivo por el que debe aplicarse.
-- `kind`: usa `preference`, `repo-convention`, `domain-fact` o `anti-pattern`.
-- `scope`: `add_local` usa scope de proyecto; `add_global` usa scope global.
-- `tags`, `relatedPaths`, `before`, `after` y `examples`: completalos cuando ayuden a recuperar y aplicar mejor el cambio.
+## How To Record A Change
 
-## Referencia a correcciones recientes
+Use `add_local` for criteria specific to the current project. Use `add_global` only when the criterion is clearly reusable across projects.
 
-Cuando sea util referirse a varias correcciones recientes en un prompt, el agente debe usar referencias cortas, legibles y estables dentro de la conversacion, por ejemplo:
+Fill fields clearly and reuseably:
+
+- `title`: short, direct criterion.
+- `summary`: context of the mistake, correction, or preference.
+- `requestedChange`: expected behavior from now on.
+- `rationale`: why this change should apply.
+- `kind`: use `preference`, `repo-convention`, `domain-fact`, or `anti-pattern`.
+- `scope`: `add_local` uses project scope; `add_global` uses global scope.
+- `tags`, `relatedPaths`, `before`, `after`, and `examples`: include them when they make the entry easier to retrieve and apply.
+
+## References To Recent Fixes
+
+When it is useful to refer to several recent corrections in a prompt, use short, readable, stable references inside the conversation, for example:
 
 - `fix-a1`
 - `fix-b2`
 - `fix-c3`
 
-No uses hashes opacos o largos si no son necesarios. La referencia corta solo sirve para que el usuario indique que correcciones quiere convertir en memoria; antes de llamar a `add_local` o `add_global`, el agente debe reconstruir la propuesta en lenguaje claro y pedir confirmacion.
+Do not use opaque or long hashes unless necessary. The short reference only helps the user indicate which corrections should become memory; before calling `add_local` or `add_global`, reconstruct the proposal in clear language and ask for confirmation.
 
-Ejemplo de uso:
+Example usage:
 
-- `Guarda en memoria fix-a1 y fix-c3`
-- `Prepara add_local con fix-b2, pero ensenamelo antes`
+- `Save fix-a1 and fix-c3 to memory`
+- `Prepare add_local with fix-b2, but show it to me first`
 
-## Flujo recomendado entre agentes
+## Recommended Agent Flow
 
-Flujo por defecto:
+Default flow:
 
-1. El agente implementador consulta `get_relevant_changes` antes de tocar codigo.
-2. El agente implementador realiza el trabajo intentando respetar esos criterios.
-3. El agente de review revisa el codigo y contrasta el resultado con los cambios recuperados y con los criterios ya aprendidos.
-4. Si el review detecta incumplimientos o una nueva correccion reutilizable, lo comunica al agente implementador.
-5. Si aparece un aprendizaje nuevo y generalizable, el agente puede proponer guardarlo, pero solo se registra con `add_local` o `add_global` si el usuario lo pide o lo confirma explicitamente.
+1. The implementation agent calls `get_relevant_changes` before touching code.
+2. The implementation agent does the work while respecting those criteria.
+3. The review agent reviews the code and checks the result against retrieved criteria and already learned rules.
+4. If the review finds violations or a new reusable correction, it reports concrete adjustments to the implementation agent.
+5. If a new generalizable learning appears, the agent may propose saving it, but it is recorded with `add_local` or `add_global` only if the user asks or explicitly confirms.
 
-## Rol del agente de review
+## Review Agent Role
 
-El agente de review es el punto de control de consistencia:
+The review agent is the consistency checkpoint:
 
-- Debe comprobar si el codigo reincide en errores ya corregidos.
-- Debe usar `get_relevant_changes` y `search_changes` cuando el contexto lo requiera.
-- Debe indicar al agente implementador que ajustes concretos hay que hacer cuando encuentre discrepancias.
-- Puede sugerir que una correccion merece guardarse, pero no debe registrar nada con `add_local` ni `add_global` sin peticion o confirmacion explicita del usuario.
+- Check whether the code repeats previously corrected mistakes.
+- Use `get_relevant_changes` and `search_changes` when the context requires it.
+- Tell the implementation agent exactly what to adjust when discrepancies are found.
+- Suggest that a correction may be worth saving, but never call `add_local` or `add_global` without an explicit user request or confirmation.
 
-## Regla de prioridad
+## Priority Rule
 
-Si un cambio recuperado entra en conflicto con la tarea actual, el agente debe:
+If a retrieved change conflicts with the current task:
 
-- dar prioridad a la instruccion explicita mas reciente del usuario,
-- explicar el conflicto de forma breve,
-- y solo guardar un nuevo cambio si el criterio corregido pasa a ser reutilizable.
+- Prioritize the user's most recent explicit instruction.
+- Briefly explain the conflict.
+- Save a new change only if the corrected criterion becomes reusable.

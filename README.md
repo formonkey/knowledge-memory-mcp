@@ -1,16 +1,16 @@
 # Changes Memory MCP
 
-MCP local para capturar correcciones y criterios que quieres reutilizar entre conversaciones, con una sola configuracion de Codex y stores separados por proyecto + global.
+Local MCP server for storing corrections, preferences, and reusable criteria across conversations, with a single Codex configuration and separate project + global memory stores.
 
-## Que resuelve
+## What It Solves
 
-- Guarda cambios pedidos por el usuario en un formato estable.
-- Permite listar, buscar y recuperar cambios relevantes para una tarea nueva.
-- Evita repetir errores si los agentes consultan este MCP antes de implementar o revisar.
+- Stores user-approved corrections in a stable format.
+- Lists, searches, and retrieves relevant criteria for new tasks.
+- Helps agents avoid repeating mistakes when they consult this MCP before implementation or review.
 
-## Stores de memoria
+## Memory Stores
 
-Por defecto guarda en:
+By default, memory is stored under:
 
 ```text
 ~/.codex/changes-memory/
@@ -19,46 +19,46 @@ Por defecto guarda en:
     <project-key>/changes.md
 ```
 
-Puedes cambiarlo con argumentos o variables de entorno:
+You can change this with CLI arguments or environment variables:
 
-- `--store-root=/ruta/al/store`: directorio raiz del store global + proyectos.
-- `--project-path=/ruta/al/proyecto`: proyecto por defecto si una tool no recibe `projectPath`.
-- `CHANGES_MEMORY_STORE_ROOT`: equivalente a `--store-root`.
-- `CHANGES_MEMORY_PROJECT_PATH`: equivalente a `--project-path`.
+- `--store-root=/path/to/store`: root directory for global + project stores.
+- `--project-path=/path/to/project`: default project when a tool call does not pass `projectPath`.
+- `CHANGES_MEMORY_STORE_ROOT`: equivalent to `--store-root`.
+- `CHANGES_MEMORY_PROJECT_PATH`: equivalent to `--project-path`.
 
-Compatibilidad anterior:
+Backward compatibility:
 
-- `--memory-root` y `CHANGES_MEMORY_ROOT` siguen funcionando como proyecto por defecto.
-- `--memory-path` y `CHANGES_MEMORY_PATH` fuerzan un fichero exacto para la memoria del proyecto por defecto.
+- `--memory-root` and `CHANGES_MEMORY_ROOT` still work as the default project path.
+- `--memory-path` and `CHANGES_MEMORY_PATH` force an exact file path for the default project memory.
 
-## Herramientas MCP
+## MCP Tools
 
-- `add_local`: guarda un nuevo cambio/correccion en la memoria del proyecto.
-- `add_global`: guarda un criterio transversal en la memoria global.
-- `list_changes`: lista entradas del proyecto y global por defecto.
-- `search_changes`: busca por texto libre, tags o rutas.
-- `get_relevant_changes`: devuelve las entradas mas relevantes de proyecto + global para una tarea concreta.
-- `get_change`: recupera una entrada exacta por id buscando en proyecto + global.
+- `add_local`: stores a new correction or criterion in project memory.
+- `add_global`: stores a cross-project criterion in global memory.
+- `list_changes`: lists project + global entries by default.
+- `search_changes`: searches entries by free text, tags, or paths.
+- `get_relevant_changes`: returns the most relevant project + global entries for a task.
+- `get_change`: retrieves an exact entry by id from project + global memory.
 
-Las tools de consulta y `add_local` aceptan `projectPath`, `projectKey` o `project` para seleccionar proyecto cuando una conversacion trabaja con varios repos.
+Read tools and `add_local` accept `projectPath`, `projectKey`, or `project` to select the right project when a conversation touches multiple repositories.
 
-## Ejecucion desde GitHub
-
-```sh
-npx -y --package github:formonkey/knowledge-memory-mcp#main changes-memory-mcp --store-root=/ruta/al/store
-```
-
-## Ejecucion desde checkout local
+## Run From GitHub
 
 ```sh
-node /ruta/a/knowledge-memory-mcp/src/index.js --store-root=/ruta/al/store
+npx -y --package github:formonkey/knowledge-memory-mcp#main changes-memory-mcp --store-root=/path/to/store
 ```
 
-## Configuracion MCP en Codex
+## Run From A Local Checkout
 
-Una sola config global en `~/.codex/config.toml`.
+```sh
+node /path/to/knowledge-memory-mcp/src/index.js --store-root=/path/to/store
+```
 
-Recomendado, directamente desde GitHub:
+## Codex MCP Configuration
+
+Use one global config in `~/.codex/config.toml`.
+
+Recommended setup, directly from GitHub:
 
 ```toml
 [mcp_servers.changes_memory]
@@ -76,7 +76,7 @@ tool_timeout_sec = 60
 default_tools_approval_mode = "auto"
 ```
 
-Checkout local:
+Local checkout:
 
 ```toml
 [mcp_servers.changes_memory]
@@ -91,29 +91,29 @@ tool_timeout_sec = 60
 default_tools_approval_mode = "auto"
 ```
 
-Alternativa con variables de entorno:
+Environment-variable alternative:
 
 ```toml
 [mcp_servers.changes_memory.env]
 CHANGES_MEMORY_STORE_ROOT = "/Users/nigma/.codex/changes-memory"
 ```
 
-Despues de guardar la configuracion, reinicia Codex para asegurar la recarga del MCP.
+After changing the config, restart Codex so the MCP server is reloaded.
 
-## Instruccion recomendada para agentes
+## Recommended Agent Instruction
 
-Si quieres forzar el uso, anade una regla en tus instrucciones globales o por repo similar a esta:
+Add a rule like this to global or repository instructions when you want agents to use this memory:
 
 ```md
-Antes de implementar o revisar cambios, consulta `get_relevant_changes` en el MCP `changes_memory` con un resumen de la tarea y aplica los criterios recuperados si siguen siendo pertinentes.
+Before implementing or reviewing changes, call `get_relevant_changes` on the `changes_memory` MCP server with a short summary of the task, then apply the retrieved criteria when they are still relevant.
 
-Cuando una conversacion toque varios proyectos, pasa `projectPath` en las tools para seleccionar la memoria local correcta.
+When a conversation touches multiple projects, pass `projectPath` in tool calls to select the correct local memory.
 
-No guardes memoria por iniciativa propia. Si el usuario confirma guardar un aprendizaje, usa `add_local` para criterios especificos del proyecto y `add_global` solo para criterios transversales entre proyectos.
+Do not store memory on your own initiative. If the user confirms that a learning should be saved, use `add_local` for project-specific criteria and `add_global` only for criteria that apply across projects.
 ```
 
-## Notas
+## Notes
 
-- La persistencia actual usa solo `changes.md`, sin base de datos ni indice externo.
-- La busqueda es textual con ranking simple; suficiente para empezar y facil de auditar.
-- Si luego quieres, se puede evolucionar a scopes `repo/global`, confirmacion editable y salida tipo `Antes -> Ahora`.
+- Persistence currently uses plain `changes.md` files, with no database or external index.
+- Search is text-based with simple ranking. It is enough to start and easy to audit.
+- The model can later evolve toward richer scopes, editable confirmations, and explicit `Before -> After` output.
