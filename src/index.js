@@ -3,14 +3,25 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-const ROOT = process.cwd();
-const CHANGES_PATH = path.join(ROOT, ".codex", "changes.md");
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
+const ROOT = path.resolve(process.env.CHANGES_MEMORY_ROOT || DEFAULT_ROOT);
+const CHANGES_PATH = path.resolve(
+  process.env.CHANGES_MEMORY_PATH || path.join(ROOT, ".codex", "changes.md")
+);
 const SERVER_INFO = {
   name: "changes-memory-mcp",
   version: "0.1.0"
 };
+const SUPPORTED_PROTOCOL_VERSIONS = [
+  "2025-06-18",
+  "2025-03-26",
+  "2024-11-05"
+];
+const SERVER_INSTRUCTIONS =
+  "Consulta get_relevant_changes antes de implementar, revisar o corregir codigo; usa add_change solo cuando el usuario pida guardar un aprendizaje reutilizable.";
 
 function ensureStore() {
   fs.mkdirSync(path.dirname(CHANGES_PATH), { recursive: true });
@@ -92,20 +103,7 @@ function appendEntry(entry) {
 }
 
 function appendText(text) {
-  const payload = Buffer.from(text, "utf8").toString("base64");
-  const literalPath = CHANGES_PATH.replace(/'/g, "''");
-  const command =
-    `$text = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${payload}')); ` +
-    `Add-Content -LiteralPath '${literalPath}' -Value $text -Encoding UTF8`;
-
-  execFileSync(
-    "powershell.exe",
-    ["-NoProfile", "-Command", command],
-    {
-      cwd: ROOT,
-      stdio: "pipe"
-    }
-  );
+  fs.appendFileSync(CHANGES_PATH, text, "utf8");
 }
 
 function serializeEntry(entry) {
@@ -195,7 +193,11 @@ function listTools() {
   return [
     {
       name: "add_change",
+      title: "Guardar Cambio",
       description: "Guarda una nueva correccion o criterio aprendido en .codex/changes.md",
+      annotations: {
+        readOnlyHint: false
+      },
       inputSchema: {
         type: "object",
         properties: {
@@ -231,7 +233,11 @@ function listTools() {
     },
     {
       name: "list_changes",
+      title: "Listar Cambios",
       description: "Lista los cambios guardados",
+      annotations: {
+        readOnlyHint: true
+      },
       inputSchema: {
         type: "object",
         properties: {
@@ -241,7 +247,11 @@ function listTools() {
     },
     {
       name: "get_change",
+      title: "Obtener Cambio",
       description: "Recupera un cambio exacto por id",
+      annotations: {
+        readOnlyHint: true
+      },
       inputSchema: {
         type: "object",
         properties: {
@@ -252,7 +262,11 @@ function listTools() {
     },
     {
       name: "search_changes",
+      title: "Buscar Cambios",
       description: "Busca cambios por texto libre",
+      annotations: {
+        readOnlyHint: true
+      },
       inputSchema: {
         type: "object",
         properties: {
@@ -264,7 +278,11 @@ function listTools() {
     },
     {
       name: "get_relevant_changes",
+      title: "Cambios Relevantes",
       description: "Devuelve los cambios mas relevantes para una tarea o riesgo concreto",
+      annotations: {
+        readOnlyHint: true
+      },
       inputSchema: {
         type: "object",
         properties: {
@@ -408,12 +426,18 @@ function handleMessage(message) {
   }
 
   if (message.method === "initialize") {
+    const requestedVersion = message.params?.protocolVersion;
+    const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
+      ? requestedVersion
+      : SUPPORTED_PROTOCOL_VERSIONS[0];
+
     sendResult(message.id, {
-      protocolVersion: "2025-06-18",
+      protocolVersion,
       serverInfo: SERVER_INFO,
       capabilities: {
         tools: {}
-      }
+      },
+      instructions: SERVER_INSTRUCTIONS
     });
     return;
   }

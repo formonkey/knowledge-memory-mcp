@@ -12,7 +12,12 @@ MCP local para capturar correcciones y criterios que quieres reutilizar entre co
 
 El fichero persistente es:
 
-- `C:\Users\murm\Projects\knowledge-memory\.codex\changes.md`
+- `.codex/changes.md` dentro de este repositorio por defecto.
+
+Puedes cambiarlo con variables de entorno:
+
+- `CHANGES_MEMORY_ROOT`: directorio raiz donde se usara `.codex/changes.md`.
+- `CHANGES_MEMORY_PATH`: ruta exacta del fichero de memoria.
 
 ## Herramientas MCP
 
@@ -24,19 +29,18 @@ El fichero persistente es:
 
 ## Ejecucion
 
-```powershell
-node C:\Users\murm\Projects\knowledge-memory\src\index.js
+```sh
+node /ruta/a/knowledge-memory/src/index.js
 ```
 
 ## Configuracion MCP en Codex
 
-Ejemplo de bloque para tu `C:\Users\murm\.codex\config.toml`:
+Ejemplo de bloque para tu `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.changes_memory]
 command = "node"
-args = ["C:\\Users\\murm\\Projects\\knowledge-memory\\src\\index.js"]
-cwd = "C:\\Users\\murm\\Projects\\knowledge-memory"
+args = ["/ruta/a/knowledge-memory/src/index.js"]
 ```
 
 Despues de guardar la configuracion, reinicia Codex para asegurar la recarga del MCP.
