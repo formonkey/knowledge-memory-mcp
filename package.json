@@ -1,0 +1,16 @@
+{
+  "name": "changes-memory-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP local para guardar y recuperar cambios/correcciones pedidas por el usuario.",
+  "type": "module",
+  "bin": {
+    "changes-memory-mcp": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node ./src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
